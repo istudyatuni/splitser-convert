@@ -1,4 +1,11 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+// ------------- currencies -------------
+
+#[derive(Debug, Deserialize)]
+pub struct CurrencyConfig {
+    pub subunit_to_unit: u64,
+}
 
 // ------------- config -------------
 
@@ -10,73 +17,70 @@ pub struct ExportConfig {
 // ------------- raw data -------------
 
 #[derive(Debug, Deserialize)]
-pub struct MembersList {
-    pub data: Vec<MemberItem>,
+pub struct ExpensesList {
+    pub data: Vec<ExpenseItem>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MemberItem {
-    pub member: Member,
+pub struct ExpenseItem {
+    pub expense: Expense,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Member {
-    #[serde(rename = "user_id")]
-    pub id: String,
-    pub nickname: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ExpencesList {
-    pub data: Vec<ExpenceItem>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ExpenceItem {
-    pub expense: Expence,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Expence {
+pub struct Expense {
     pub name: String,
-    pub status: ExpenceStatus,
-    pub payed_on: String,
-    #[serde(flatten)]
-    pub amounts: ExpenceAmounts,
-    pub shares: Vec<ExpenceShareItem>,
+    pub status: ExpenseStatus,
+    #[serde(rename = "payed_on")]
+    pub date: String,
+    // #[serde(flatten)]
+    // pub amounts: ExpenseAmounts,
+    pub shares: Vec<ExpenseShareItem>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
-pub enum ExpenceStatus {
+pub enum ExpenseStatus {
     Active,
     Deleted,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ExpenceAmounts {
+pub struct ExpenseAmounts {
     #[serde(rename = "source_amount")]
-    pub source: ExpenceAmount,
+    pub source: ExpenseAmount,
     #[serde(rename = "amount")]
-    pub converted: ExpenceAmount,
+    pub converted: ExpenseAmount,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ExpenceAmount {
+pub struct ExpenseAmount {
     pub currency: String,
     pub fractional: u64,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ExpenceShareItem {
-    pub share: ExpenceShare,
+pub struct ExpenseShareItem {
+    pub share: ExpenseShare,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ExpenceShare {
+pub struct ExpenseShare {
     pub member_id: String,
     #[serde(flatten)]
-    pub amounts: ExpenceAmounts,
+    pub amounts: ExpenseAmounts,
 }
 
 // ------------- exported data -------------
+
+#[derive(Debug, Serialize)]
+pub struct ExpenseExport {
+    pub name: String,
+    pub date: String,
+
+    // pub payed_by: String,
+    pub source_currency: String,
+    pub source_amount: String,
+
+    pub converted_currency: String,
+    pub converted_amount: String,
+}
