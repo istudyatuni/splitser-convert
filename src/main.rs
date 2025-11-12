@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result};
 
@@ -7,9 +10,13 @@ use models::*;
 mod models;
 
 fn main() -> Result<()> {
+    let export_folder = PathBuf::from("data/export");
+    if !export_folder.exists() {
+        std::fs::create_dir(&export_folder).context("creating export folder")?;
+    }
+
     let config = std::fs::read_to_string("data/config.json").context("reading config file")?;
     let config: ExportConfig = serde_json::from_str(&config).context("parsing config json")?;
-    let target_user_id = config.user_id;
 
     let currencies =
         std::fs::read_to_string("data/currencies.json").context("reading currencies file")?;
@@ -21,7 +28,7 @@ fn main() -> Result<()> {
         .map(|(name, config)| {
             (
                 name,
-                // count number of zeros in number, imitate log
+                // count number of zeros in number, imitate log10
                 config
                     .subunit_to_unit
                     .to_string()
@@ -43,23 +50,48 @@ fn main() -> Result<()> {
         .map(|e| e.expense)
         .collect();
 
-    let mut writer =
-        csv::Writer::from_path("data/export.csv").context("initializing csv writer")?;
+    match config {
+        ExportConfig::SingleUser(config) => export_member(
+            &config.user_id,
+            &export_folder.join(&config.name).with_extension("csv"),
+            &currencies_sub_shift,
+            &expenses,
+        )
+        .context("exporting member data")?,
+        ExportConfig::ManyUsers(map) => {
+            for (user_id, name) in &map {
+                export_member(
+                    user_id,
+                    &export_folder.join(name).with_extension("csv"),
+                    &currencies_sub_shift,
+                    &expenses,
+                )
+                .with_context(|| format!("exporting member data for {name} ({user_id})"))?
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn export_member(
+    user_id: &str,
+    path: &Path,
+    currencies_sub_shift: &HashMap<String, usize>,
+    expenses: &[Expense],
+) -> Result<()> {
+    let mut writer = csv::Writer::from_path(path).context("initializing csv writer")?;
     let mut written = 0;
     for expense in expenses {
-        let Some(share) = expense
-            .shares
-            .iter()
-            .find(|s| s.share.member_id == target_user_id)
-        else {
+        let Some(share) = expense.shares.iter().find(|s| s.share.member_id == user_id) else {
             continue;
         };
         let share = &share.share.amounts;
 
         writer
             .serialize(ExpenseExport {
-                name: expense.name,
-                date: expense.date,
+                name: expense.name.to_owned(),
+                date: expense.date.to_owned(),
                 source_currency: share.source.currency.clone(),
                 source_amount: format_amount(
                     *currencies_sub_shift
