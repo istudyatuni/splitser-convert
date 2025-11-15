@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 
 // ------------- currencies -------------
@@ -7,21 +5,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize)]
 pub struct CurrencyConfig {
     pub subunit_to_unit: u64,
-}
-
-// ------------- config -------------
-
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-pub enum ExportConfig {
-    SingleUser(ExportConfigSingleUser),
-    ManyUsers(HashMap<String, String>),
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ExportConfigSingleUser {
-    pub user_id: String,
-    pub name: String,
 }
 
 // ------------- raw data -------------

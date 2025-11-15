@@ -16,7 +16,8 @@ fn main() -> Result<()> {
     }
 
     let config = std::fs::read_to_string("data/config.json").context("reading config file")?;
-    let config: ExportConfig = serde_json::from_str(&config).context("parsing config json")?;
+    let export_members: HashMap<String, String> =
+        serde_json::from_str(&config).context("parsing config json")?;
 
     let currencies =
         std::fs::read_to_string("data/currencies.json").context("reading currencies file")?;
@@ -50,25 +51,14 @@ fn main() -> Result<()> {
         .map(|e| e.expense)
         .collect();
 
-    match config {
-        ExportConfig::SingleUser(config) => export_member(
-            &config.user_id,
-            &export_folder.join(&config.name).with_extension("csv"),
+    for (user_id, name) in &export_members {
+        eprintln!("exporting member data for {name} ({user_id})");
+        export_member(
+            user_id,
+            &export_folder.join(name).with_extension("csv"),
             &currencies_sub_shift,
             &expenses,
-        )
-        .context("exporting member data")?,
-        ExportConfig::ManyUsers(map) => {
-            for (user_id, name) in &map {
-                export_member(
-                    user_id,
-                    &export_folder.join(name).with_extension("csv"),
-                    &currencies_sub_shift,
-                    &expenses,
-                )
-                .with_context(|| format!("exporting member data for {name} ({user_id})"))?
-            }
-        }
+        )?
     }
 
     Ok(())
