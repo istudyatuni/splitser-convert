@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
 };
 
@@ -18,6 +18,7 @@ fn main() -> Result<()> {
     let config = std::fs::read_to_string("data/config.json").context("reading config file")?;
     let export_members: HashMap<String, String> =
         serde_json::from_str(&config).context("parsing config json")?;
+    check_members_names(&export_members);
 
     let currencies =
         std::fs::read_to_string("data/currencies.json").context("reading currencies file")?;
@@ -62,6 +63,13 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn check_members_names(config: &HashMap<String, String>) {
+    let names: HashSet<&str> = config.values().map(|v| v.as_str()).collect();
+    if names.len() < config.len() {
+        eprintln!("[warn] some members names are repeated")
+    }
 }
 
 fn export_member(
